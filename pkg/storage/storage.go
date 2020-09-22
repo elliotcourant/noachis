@@ -22,7 +22,7 @@ type (
 
 	Storage interface {
 		// Close will shut down the storage interface. Any operations that can be
-		// stoppped will be, but any operations that are attempted after the close
+		// stopped will be, but any operations that are attempted after the close
 		// is complete will fail. If an error is returned the storage object has
 		// still been closed, the error is only a representation of any problems
 		// that have happened during closing.
@@ -37,6 +37,8 @@ type (
 		// value could change after being read. This prevents that be copying the
 		// value data to the destination to make it separate.
 		ValueCopy(destination []byte) ([]byte, error)
+
+		KeyCopy(destination []byte) ([]byte, error)
 	}
 
 	Transaction interface {
@@ -61,3 +63,8 @@ type (
 		Discard() error
 	}
 )
+
+func NewStorage(config Configuration) (Storage, error) {
+	store, err := newBadgerStorage(config)
+	return store, err
+}
