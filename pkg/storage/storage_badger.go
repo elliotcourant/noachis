@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/hex"
 	"sync"
 
 	"github.com/dgraph-io/badger/v2"
@@ -14,11 +15,13 @@ var (
 
 type (
 	badgerStorage struct {
-		closed     bool
-		closedSync sync.RWMutex
-		config     Configuration
-		db         *badger.DB
-		log        *logrus.Entry
+		closed        bool
+		closedSync    sync.RWMutex
+		config        Configuration
+		db            *badger.DB
+		log           *logrus.Entry
+		sequenceCache map[string]*badger.Sequence
+		sequenceLock  sync.RWMutex
 	}
 )
 
@@ -51,13 +54,36 @@ func (b *badgerStorage) assertNotClosed() {
 	}
 }
 
+func (b *badgerStorage) NewTransaction() (Transaction, error) {
+	b.assertNotClosed()
+
+	return &badgerTransaction{
+		badgerTxn: b.db.NewTransaction(true),
+		log:       b.log,
+		storage:   b,
+	}, nil
+}
+
 func (b *badgerStorage) Close() error {
 	b.assertNotClosed()
 	b.closedSync.Lock()
+	b.sequenceLock.Lock()
 	defer func() {
 		b.closed = true
 		b.closedSync.Unlock()
+		b.sequenceLock.Unlock()
 	}()
+
+	for key, sequence := range b.sequenceCache {
+		if err := sequence.Release(); err != nil {
+			b.log.
+				WithField("sequence", hex.EncodeToString([]byte(key))).
+				WithError(err).
+				Warn("failed to release sequence")
+		}
+
+		b.sequenceCache[key] = nil
+	}
 
 	// TODO (elliotcourant) Make this a sync.Once.
 	return b.db.Close()
