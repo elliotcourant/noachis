@@ -16,4 +16,6 @@ type (
 
 		Raw() interface{}
 	}
+
+	Datums []Datum
 )
