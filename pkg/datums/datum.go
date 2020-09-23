@@ -10,7 +10,7 @@ type (
 	Datum interface {
 		InferredType() types.Type
 
-		Encode(ctx context.Context, destination []byte, datumType types.Type) error
+		Encode(ctx context.Context, datumType types.Type) ([]byte, error)
 
 		String() string
 

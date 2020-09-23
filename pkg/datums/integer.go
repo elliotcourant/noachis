@@ -20,7 +20,8 @@ func (d DInt) InferredType() types.Type {
 	return types.Int8
 }
 
-func (d DInt) Encode(ctx context.Context, destination []byte, datumType types.Type) error {
+func (d DInt) Encode(ctx context.Context, datumType types.Type) ([]byte, error) {
+	destination := make([]byte, 0)
 	switch datumType.Family {
 	case types.IntegerFamily:
 		data := make([]byte, 8, 8)
@@ -30,11 +31,11 @@ func (d DInt) Encode(ctx context.Context, destination []byte, datumType types.Ty
 			// If there is no width specified then that means we need to write
 			// this integer with a 16 bit length prefix.
 			destination = append(destination, make([]byte, 2, 2)...)
-			binary.BigEndian.PutUint16(destination[len(destination)-2:], uint16(len(data)))
+			binary.BigEndian.PutUint16(destination[0:2], uint16(len(data)))
 			fallthrough
 		case 8:
 			destination = append(destination, data...)
-			return nil
+			return destination, nil
 		default:
 			panic("custom lengths are not yet implemented")
 		}
