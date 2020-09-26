@@ -15,6 +15,10 @@ type (
 	DText string
 )
 
+func Text(str string) DText {
+	return DText(str)
+}
+
 func (d DText) InferredType() types.Type {
 	return types.Text
 }
