@@ -66,6 +66,32 @@ type (
 		// Discard will throw out all of the changes made during the transaction.
 		Discard() error
 	}
+
+	Iterator interface {
+		Seek(key []byte)
+
+		Next()
+
+		Previous()
+
+		Valid() bool
+
+		ValidForPrefix(prefix []byte) bool
+
+		Rewind()
+
+		Item() Item
+
+		Close() error
+	}
+
+	Sequence interface {
+		Key() []byte
+
+		Next() (uint64, error)
+
+		Release() error
+	}
 )
 
 func NewStorage(config Configuration) (Storage, error) {

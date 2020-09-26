@@ -15,6 +15,10 @@ type (
 	DOid uint32
 )
 
+func Oid(i uint32) DOid {
+	return DOid(i)
+}
+
 func (d DOid) InferredType() types.Type {
 	return types.OID
 }
