@@ -1,11 +1,13 @@
 package descriptors
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/elliotcourant/noachis/pkg/datums"
 	"github.com/elliotcourant/noachis/pkg/types"
+	"github.com/pkg/errors"
 )
 
 type RelationDescriptor struct {
@@ -125,4 +127,13 @@ func (r *RelationDescriptor) MustGetColumnByName(name string) ColumnDescriptor {
 	}
 
 	panic(fmt.Sprintf("cannot get column by name %s", name))
+}
+
+func (r *RelationDescriptor) Encode() ([]byte, error) {
+	encoded, err := json.Marshal(r)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to encode relation descriptor")
+	}
+
+	return encoded, nil
 }

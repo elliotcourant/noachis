@@ -3,6 +3,7 @@ package storage
 import (
 	"encoding/hex"
 	"sync"
+	"sync/atomic"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/pkg/errors"
@@ -15,15 +16,37 @@ var (
 
 type (
 	badgerStorage struct {
-		closed        bool
-		closedSync    sync.RWMutex
+		closed        int32
 		config        Configuration
 		db            *badger.DB
 		log           *logrus.Entry
-		sequenceCache map[string]*badger.Sequence
+		sequenceCache map[string]*badgerSequence
 		sequenceLock  sync.RWMutex
 	}
 )
+
+func (b *badgerStorage) GetSequence(key []byte) (Sequence, error) {
+	b.assertNotClosed()
+
+	b.sequenceLock.RLock()
+	sequence, ok := b.sequenceCache[string(key)]
+	b.sequenceLock.RUnlock()
+	if ok {
+		return sequence, nil
+	}
+
+	b.sequenceLock.Lock()
+	defer b.sequenceLock.Unlock()
+	badgerSeq, err := b.db.GetSequence(key, 10)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to allocate badger sequence")
+	}
+
+	sequence = newBadgerSequence(key, badgerSeq)
+	b.sequenceCache[string(key)] = sequence
+
+	return sequence, nil
+}
 
 func newBadgerStorage(configuration Configuration) (*badgerStorage, error) {
 	options := badger.DefaultOptions(configuration.Directory).
@@ -46,10 +69,8 @@ func (b *badgerStorage) assertNotClosed() {
 	if b == nil {
 		panic("badger storage is nil")
 	}
-	b.closedSync.RLock()
-	defer b.closedSync.RUnlock()
 
-	if b.closed {
+	if atomic.LoadInt32(&b.closed) > 0 {
 		panic("badger storage is closed")
 	}
 }
@@ -65,12 +86,12 @@ func (b *badgerStorage) NewTransaction() (Transaction, error) {
 }
 
 func (b *badgerStorage) Close() error {
-	b.assertNotClosed()
-	b.closedSync.Lock()
+	if !atomic.CompareAndSwapInt32(&b.closed, 0, 1) {
+		return errors.Errorf("cannot close storage, may already be closed")
+	}
+
 	b.sequenceLock.Lock()
 	defer func() {
-		b.closed = true
-		b.closedSync.Unlock()
 		b.sequenceLock.Unlock()
 	}()
 

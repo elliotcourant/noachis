@@ -25,6 +25,8 @@ type (
 		// database.
 		NewTransaction() (Transaction, error)
 
+		GetSequence(key []byte) (Sequence, error)
+
 		// Close will shut down the storage interface. Any operations that can be
 		// stopped will be, but any operations that are attempted after the close
 		// is complete will fail. If an error is returned the storage object has

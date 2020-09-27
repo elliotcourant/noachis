@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"sync"
+	"sync/atomic"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/pkg/errors"
@@ -14,9 +14,8 @@ var (
 
 type (
 	badgerTransaction struct {
+		state     badgerTransactionState
 		badgerTxn *badger.Txn
-		done      bool
-		doneLock  sync.RWMutex
 		log       *logrus.Entry
 		storage   *badgerStorage
 	}
@@ -27,11 +26,14 @@ func (b *badgerTransaction) assertNotDone() {
 		panic("badger transaction is nil")
 	}
 
-	b.doneLock.RLock()
-	defer b.doneLock.RUnlock()
-
-	if b.done {
-		panic("badger transaction is committed or discarded")
+	switch atomic.LoadInt32(&b.state) {
+	case badgerTransactionStateActive:
+		// If the transaction is active then we are good to use it.
+		return
+	case badgerTransactionStateDiscarded:
+		panic("badger transaction is already discarded")
+	case badgerTransactionStateCommitted:
+		panic("badger transaction is already committed")
 	}
 }
 
@@ -72,25 +74,23 @@ func (b *badgerTransaction) Set(key, value []byte) error {
 }
 
 func (b *badgerTransaction) Commit() error {
-	b.assertNotDone()
-
-	b.doneLock.Lock()
-	defer func() {
-		b.done = true
-		b.doneLock.Unlock()
-	}()
+	// Try to CAS the state of the transaction to committed. This will make sure
+	// that only a single thread can commit the transaction.
+	if !atomic.CompareAndSwapInt32(
+		&b.state, badgerTransactionStateActive, badgerTransactionStateCommitted,
+	) {
+		return errors.Errorf("cannot commit inactive badger transaction")
+	}
 
 	return b.badgerTxn.Commit()
 }
 
 func (b *badgerTransaction) Discard() error {
-	b.assertNotDone()
-
-	b.doneLock.Lock()
-	defer func() {
-		b.done = true
-		b.doneLock.Unlock()
-	}()
+	if !atomic.CompareAndSwapInt32(
+		&b.state, badgerTransactionStateActive, badgerTransactionStateDiscarded,
+	) {
+		return errors.Errorf("cannot discard inactive badger transaction")
+	}
 
 	b.badgerTxn.Discard()
 
