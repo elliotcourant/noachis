@@ -19,3 +19,7 @@ type (
 
 	Datums []Datum
 )
+
+func (d Datums) String() string {
+	panic("not implemented")
+}

@@ -48,4 +48,10 @@ var (
 		Width:       4,
 		ElementType: nil,
 	}
+
+	Descriptor = Type{
+		Family:      DescriptorFamily,
+		Width:       0,
+		ElementType: nil,
+	}
 )

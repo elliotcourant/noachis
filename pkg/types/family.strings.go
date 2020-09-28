@@ -15,11 +15,12 @@ func _() {
 	_ = x[ArrayFamily-4]
 	_ = x[OIDFamily-5]
 	_ = x[ObjectFamily-6]
+	_ = x[DescriptorFamily-7]
 }
 
-const _Family_name = "UnknownFamilyIntegerFamilyBooleanFamilyTextFamilyArrayFamilyOIDFamilyObjectFamily"
+const _Family_name = "UnknownFamilyIntegerFamilyBooleanFamilyTextFamilyArrayFamilyOIDFamilyObjectFamilyDescriptorFamily"
 
-var _Family_index = [...]uint8{0, 13, 26, 39, 49, 60, 69, 81}
+var _Family_index = [...]uint8{0, 13, 26, 39, 49, 60, 69, 81, 97}
 
 func (i Family) String() string {
 	if i >= Family(len(_Family_index)-1) {

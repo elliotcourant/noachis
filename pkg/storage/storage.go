@@ -44,6 +44,8 @@ type (
 		// value data to the destination to make it separate.
 		ValueCopy(destination []byte) ([]byte, error)
 
+		Value(fn func(val []byte) error) error
+
 		KeyCopy(destination []byte) ([]byte, error)
 	}
 

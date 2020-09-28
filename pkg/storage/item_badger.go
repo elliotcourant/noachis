@@ -19,6 +19,9 @@ func newBadgerItem(item *badger.Item) Item {
 		item: item,
 	}
 }
+func (b badgerItem) Value(fn func(val []byte) error) error {
+	return b.item.Value(fn)
+}
 
 func (b badgerItem) ValueCopy(destination []byte) ([]byte, error) {
 	return b.item.ValueCopy(destination)

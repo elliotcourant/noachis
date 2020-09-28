@@ -1,6 +1,7 @@
 package descriptors
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -10,6 +11,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	_ datums.Datum = &RelationDescriptor{}
+)
+
 type RelationDescriptor struct {
 	Oid             datums.DOid
 	Name            string
@@ -17,6 +22,40 @@ type RelationDescriptor struct {
 	Columns         []ColumnDescriptor
 	PrimaryKeyIndex IndexDescriptor
 	Indexes         []IndexDescriptor
+}
+
+func DecodeRelationDescriptor(descriptor datums.DDescriptor) (*RelationDescriptor, error) {
+	relDesc := RelationDescriptor{}
+	if err := json.Unmarshal(descriptor, &relDesc); err != nil {
+		return nil, errors.Wrap(err, "failed to decode relation descriptor")
+	}
+
+	return &relDesc, nil
+}
+
+func (r *RelationDescriptor) InferredType() types.Type {
+	return types.Descriptor
+}
+
+func (r *RelationDescriptor) Encode(ctx context.Context, datumType types.Type) ([]byte, error) {
+	encoded, err := json.Marshal(r)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to encode relation descriptor")
+	}
+
+	return encoded, nil
+}
+
+func (r *RelationDescriptor) String() string {
+	if r.Oid > 0 {
+		return fmt.Sprintf("%s (%d)", r.Name, r.Oid)
+	}
+
+	return fmt.Sprintf("%s", r.Name)
+}
+
+func (r *RelationDescriptor) Raw() interface{} {
+	return r
 }
 
 func NewRelation(name string) *RelationDescriptor {
@@ -129,11 +168,12 @@ func (r *RelationDescriptor) MustGetColumnByName(name string) ColumnDescriptor {
 	panic(fmt.Sprintf("cannot get column by name %s", name))
 }
 
-func (r *RelationDescriptor) Encode() ([]byte, error) {
-	encoded, err := json.Marshal(r)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to encode relation descriptor")
+func (r *RelationDescriptor) MustGetColumnIndex(input ColumnDescriptor) int {
+	for i, column := range r.Columns {
+		if column.Id == input.Id {
+			return i
+		}
 	}
 
-	return encoded, nil
+	panic(fmt.Sprintf("cannot get column index for %s (%d)", input.Name, input.Id))
 }

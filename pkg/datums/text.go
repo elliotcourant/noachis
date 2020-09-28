@@ -3,8 +3,10 @@ package datums
 import (
 	"context"
 	"encoding/binary"
+	"io"
 
 	"github.com/elliotcourant/noachis/pkg/types"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -17,6 +19,36 @@ type (
 
 func Text(str string) DText {
 	return DText(str)
+}
+
+func DecodeText(ctx context.Context, buf io.Reader, datumType types.Type) (DText, error) {
+	switch datumType.Family {
+	case types.TextFamily:
+		size := datumType.Width
+		switch datumType.Width {
+		case 0:
+			sizeBytes := make([]byte, 2, 2)
+			if n, err := buf.Read(sizeBytes); err != nil {
+				return "", errors.Wrap(err, "failed to read size prefix")
+			} else if n != 2 {
+				return "", errors.Errorf("failed to read n bytes from buffer, expected %d received %d", 2, n)
+			}
+
+			size = binary.BigEndian.Uint16(sizeBytes)
+			fallthrough
+		default:
+			text := make([]byte, size, size)
+			if n, err := buf.Read(text); err != nil {
+				return "", errors.Wrap(err, "failed to read text datum")
+			} else if uint16(n) != size {
+				return "", errors.Errorf("failed to read n bytes from buffer, expected %d received %d", size, n)
+			}
+
+			return Text(string(text)), nil
+		}
+	default:
+		return "", errors.Errorf("cannot decode text as family %s", datumType.Family)
+	}
 }
 
 func (d DText) InferredType() types.Type {

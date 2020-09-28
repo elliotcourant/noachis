@@ -11,4 +11,5 @@ const (
 	ArrayFamily
 	OIDFamily
 	ObjectFamily
+	DescriptorFamily
 )
