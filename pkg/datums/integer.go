@@ -16,6 +16,10 @@ type (
 	DInt int64
 )
 
+func Int(i int64) DInt {
+	return DInt(i)
+}
+
 func (d DInt) InferredType() types.Type {
 	return types.Int8
 }

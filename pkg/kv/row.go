@@ -35,6 +35,10 @@ func EncodeRow(
 	buf := make([]byte, 0)
 	buf = append(buf, datums.NewNullMap(values)...)
 	for i, value := range values {
+		if value == datums.Null {
+			continue
+		}
+
 		encoded, err := value.Encode(ctx, valueTypes[i])
 		if err != nil {
 			return nil, err

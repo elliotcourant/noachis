@@ -2,6 +2,7 @@ package datums
 
 import (
 	"context"
+	"strings"
 
 	"github.com/elliotcourant/noachis/pkg/types"
 )
@@ -21,5 +22,10 @@ type (
 )
 
 func (d Datums) String() string {
-	panic("not implemented")
+	items := make([]string, len(d), len(d))
+	for i, datum := range d {
+		items[i] = datum.String()
+	}
+
+	return strings.Join(items, "|")
 }

@@ -37,7 +37,7 @@ func NewIndexKey(
 	}
 
 	path := make([]string, len(keyDatums)+1, len(keyDatums)+1)
-	path[0] = index.Name
+	path[0] = fmt.Sprintf("%s<%d>", index.Name, index.Oid)
 
 	buf := make([]byte, 5)
 	buf[0] = RecordKeyType

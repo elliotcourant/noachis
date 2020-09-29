@@ -2,6 +2,8 @@ package exec
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"sync/atomic"
 
 	"github.com/elliotcourant/noachis/pkg/datums"
@@ -131,7 +133,7 @@ func (i *indexWriter) ValidateRow(ctx context.Context, row datums.Datums) error 
 	}
 
 	if ok {
-		return errors.Errorf("key %s violates unique index %s", key.String(), i.index.Name)
+		return i.uniqueConstraintViolationError(key)
 	}
 
 	return nil
@@ -143,4 +145,12 @@ func (i *indexWriter) Close(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (i *indexWriter) uniqueConstraintViolationError(key datums.Datums) error {
+	columns := make([]string, len(i.index.KeyColumns), len(i.index.KeyColumns))
+	for x, col := range i.index.KeyColumns {
+		columns[x] = fmt.Sprintf("%s:%s", col.Name, key[x].String())
+	}
+	return errors.Errorf("key %s violates unique index %s", strings.Join(columns, ", "), i.index.Name)
 }
