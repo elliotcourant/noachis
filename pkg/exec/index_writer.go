@@ -152,5 +152,6 @@ func (i *indexWriter) uniqueConstraintViolationError(key datums.Datums) error {
 	for x, col := range i.index.KeyColumns {
 		columns[x] = fmt.Sprintf("%s:%s", col.Name, key[x].String())
 	}
+
 	return errors.Errorf("key %s violates unique index %s", strings.Join(columns, ", "), i.index.Name)
 }
