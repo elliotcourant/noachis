@@ -73,7 +73,13 @@ func (i *indexReader) Item(ctx context.Context) engine.Item {
 func (i *indexReader) Seek(ctx context.Context, indexKey datums.Datums) error {
 	i.assertNotClosed()
 
-	key, err := kv.NewIndexKey(ctx, i.index, indexKey)
+	var key kv.Key
+	var err error
+	if indexKey == nil {
+		key, err = kv.NewMinimumIndexKey(ctx, i.index)
+	} else {
+		key, err = kv.NewIndexKey(ctx, i.index, indexKey)
+	}
 	if err != nil {
 		return err
 	}

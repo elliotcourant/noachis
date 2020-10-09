@@ -9,4 +9,6 @@ import (
 const (
 	OIDSequenceId datums.DOid = math.MaxInt32 - iota
 	RelationsTableId
+	RelationsPrimaryKeyIndexId
+	RelationsByNameUniqueIndexId
 )

@@ -117,7 +117,8 @@ func (t *transactionBase) Has(ctx context.Context, key kv.Key) (ok bool, _ error
 }
 
 func (t *transactionBase) NewIterator() (Iterator, error) {
-	panic("implement me")
+	// TODO (elliotcourant) IMPLEMENT ME.
+	return nil, nil
 }
 
 func (t *transactionBase) Commit(ctx context.Context) error {

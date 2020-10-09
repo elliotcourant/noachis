@@ -22,6 +22,29 @@ var (
 	_ Key = SequenceKey{}
 )
 
+func NewMinimumIndexKey(
+	ctx context.Context,
+	index descriptors.IndexDescriptor,
+) (Key, error) {
+	if index.Oid == 0 {
+		return nil, errors.Errorf("index is not initialized")
+	}
+
+	path := make([]string, 2, 2)
+	path[0] = fmt.Sprintf("%s<%d>", index.Name, index.Oid)
+	path[1] = "<minimum>"
+
+	buf := make([]byte, 13)
+	buf[0] = RecordKeyType
+	binary.BigEndian.PutUint32(buf[1:5], uint32(index.Oid))
+	binary.BigEndian.PutUint64(buf[5:13], uint64(0))
+
+	return IndexKey{
+		Key:  buf,
+		Path: "/" + strings.Join(path, "/"),
+	}, nil
+}
+
 func NewIndexKey(
 	ctx context.Context,
 	index descriptors.IndexDescriptor,

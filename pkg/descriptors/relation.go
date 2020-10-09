@@ -24,13 +24,13 @@ type RelationDescriptor struct {
 	Indexes         []IndexDescriptor
 }
 
-func DecodeRelationDescriptor(descriptor datums.DDescriptor) (*RelationDescriptor, error) {
+func DecodeRelationDescriptor(descriptor datums.DDescriptor) (RelationDescriptor, error) {
 	relDesc := RelationDescriptor{}
 	if err := json.Unmarshal(descriptor, &relDesc); err != nil {
-		return nil, errors.Wrap(err, "failed to decode relation descriptor")
+		return relDesc, errors.Wrap(err, "failed to decode relation descriptor")
 	}
 
-	return &relDesc, nil
+	return relDesc, nil
 }
 
 func (r *RelationDescriptor) InferredType() types.Type {
@@ -84,6 +84,13 @@ func (r *RelationDescriptor) WithColumn(
 	return r
 }
 
+func (r *RelationDescriptor) WithColumnRaw(column ColumnDescriptor) *RelationDescriptor {
+	r.NextColumnId = column.Id + 1
+	r.Columns = append(r.Columns, column)
+
+	return r
+}
+
 func (r *RelationDescriptor) WithPrimaryKey(
 	creator func(relation *RelationDescriptor) IndexDescriptor,
 ) *RelationDescriptor {
@@ -122,6 +129,25 @@ func (r *RelationDescriptor) WithIndex(
 func (r *RelationDescriptor) WithUniqueIndex(uniqueColumnNames ...string) *RelationDescriptor {
 	return r.WithIndex(func(relation *RelationDescriptor) IndexDescriptor {
 		index := IndexDescriptor{
+			Name:           fmt.Sprintf("uq_%s_%s", relation.Name, strings.Join(uniqueColumnNames, "_")),
+			IsUnique:       true,
+			KeyColumns:     make([]ColumnDescriptor, len(uniqueColumnNames), len(uniqueColumnNames)),
+			StoringColumns: r.PrimaryKeyIndex.KeyColumns,
+		}
+
+		for i, name := range uniqueColumnNames {
+			index.KeyColumns[i] = relation.MustGetColumnByName(name)
+		}
+
+		return index
+	})
+}
+
+func (r *RelationDescriptor) WithUniqueIndexId(id datums.DOid, uniqueColumnNames ...string) *RelationDescriptor {
+	return r.WithIndex(func(relation *RelationDescriptor) IndexDescriptor {
+		index := IndexDescriptor{
+			Oid:            id,
+			RelationOid:    relation.Oid,
 			Name:           fmt.Sprintf("uq_%s_%s", relation.Name, strings.Join(uniqueColumnNames, "_")),
 			IsUnique:       true,
 			KeyColumns:     make([]ColumnDescriptor, len(uniqueColumnNames), len(uniqueColumnNames)),
